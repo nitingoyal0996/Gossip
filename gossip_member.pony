@@ -2,37 +2,29 @@ use "random"
 use "time"
 use "collections"
 use "utils"
-use "algorithms"
 use "structs"
 use "interfaces"
 
 actor GossipMember is Member
   let _id: USize
   var _state: GossipState
-  var _rumor: String
-  var _count: USize
   var _neighbors: Array[Member tag] iso
-  let _threshold: USize
   let _env: Env
   let _main: Main tag
   let _logger: Logger tag
   let _network_logger: NetworkLogger tag
   let _random: RandomUtils
-  var _converged: Bool
+  let _threshold: F64 = 10
 
-  new create(id: USize, state: GossipState, neighbors: Array[Member tag] iso, threshold: USize, env: Env, main: Main tag, logger: Logger tag, network_logger: NetworkLogger tag) =>
+  new create(id: USize, initial_state: GossipState, neighbors: Array[Member tag] iso, env: Env, main: Main tag, logger: Logger tag, network_logger: NetworkLogger tag) =>
     _id = id
-    _state = state
-    _rumor = state.rumor
-    _count = 0
+    _state = initial_state
     _neighbors = consume neighbors
-    _threshold = threshold
     _env = env
     _main = main
     _logger = logger
     _network_logger = network_logger
     _random = RandomUtils.create()
-    _converged = false
 
   fun ref get_id(): USize => _id
 
@@ -48,13 +40,11 @@ actor GossipMember is Member
   be receive(message: Message val) =>
     match message
     | let gm: GossipMessage val =>
-      let received_rumor = gm.get_data()
-      if (received_rumor == _rumor) and (not _converged) then
-        _count = _count + 1
-        _logger.log_gossip(_id, "RECEIVE", _rumor, _count)
+      if gm.get_data() == _state.rumor then
+        _state = GossipState(_state.rumor, _state.count + 1)
+        _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
         
-        if _count >= _threshold then
-          _converged = true
+        if _state.count >= _threshold then
           _main.report_convergence()
         else
           send()
@@ -63,12 +53,21 @@ actor GossipMember is Member
     end
 
   be send() =>
-    if (not _converged) and (_neighbors.size() > 0) then
+    if (_neighbors.size() > 0) then
       let index = _random.get_random_number_in_range(0, _neighbors.size() - 1)
-      _logger.log_gossip(_id, "SEND", _rumor, _count)
+      _logger.log_gossip(_id, "SEND", _state.rumor, _state.count.usize())
       
       try
-        let message = GossipMessage(_rumor)
+        let message = GossipMessage(_state.rumor)
         _neighbors(index)?.receive(message)
       end
     end
+
+class val GossipMessage is Message
+  let _rumor: String
+
+  new val create(rumor: String) =>
+    _rumor = rumor
+
+  fun get_data(): String =>
+    _rumor

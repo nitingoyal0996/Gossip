@@ -15,10 +15,10 @@ actor Logger
             _env.out.print("Error opening log file")
         else
             // Write CSV header
-            file.write("Timestamp,NodeID,Action,S,W\n")
+            file.write("Timestamp,NodeID,Action,S,W,Ratio\n")
         end
 
-    be log(node_id: USize, action: String, s: F64, w: F64) =>
+    be log(node_id: USize, action: String, s: F64, w: F64, ratio: F64) =>
         let timestamp = Time.millis()
         let log_entry = recover val
             String(256) .> append(timestamp.string())
@@ -30,11 +30,13 @@ actor Logger
                         .> append(s.string())
                         .> append(",")
                         .> append(w.string())
+                        .> append(",")
+                        .> append(ratio.string())
                         .> append("\n")
         end
         file.write(consume log_entry)
 
-    be log_gossip(node_id: USize, action: String, count: USize) =>
+    be log_gossip(node_id: USize, action: String, rumor: String, count: USize) =>
         let timestamp = Time.millis()
         let log_entry = recover val
             String(256) .> append(timestamp.string())
@@ -42,6 +44,8 @@ actor Logger
                         .> append(node_id.string())
                         .> append(",")
                         .> append(action)
+                        .> append(",")
+                        .> append(rumor)
                         .> append(",")
                         .> append(count.string())
                         .> append(",")

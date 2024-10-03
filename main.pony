@@ -3,7 +3,6 @@ use "random"
 use "collections"
 use "utils"
 use "topologies"
-use "algorithms"
 use "interfaces"
 use "structs"
 
@@ -57,17 +56,15 @@ actor Main
     
     match algorithm
     | "gossip" =>
-      let gossip_algo = GossipAlgorithm("rumor")
       for i in Range(0, _num_nodes) do
-        let initial_state = GossipState("", 0)
-        let member = GossipMember(i, initial_state, recover Array[Member tag] end, 10, _env, this, _logger, _network_logger)
+        let initial_state = GossipState("rumor", 0)
+        let member = GossipMember(i, initial_state, recover Array[Member tag] end, _env, this, _logger, _network_logger)
         members.push(member)
       end
     | "push-sum" =>
-      let push_sum_algo = PushSumAlgorithm
       for i in Range(0, _num_nodes) do
         let initial_state = State(i.f64(), 1.0)
-        let member = PushSumMember(i, initial_state, recover Array[Member tag] end, _env, this, _logger, _network_logger, 1e-10)
+        let member = PushSumMember(i, initial_state, recover Array[Member tag] end, _env, this, _logger, _network_logger)
         members.push(member)
       end
     else

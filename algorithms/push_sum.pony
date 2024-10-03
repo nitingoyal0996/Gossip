@@ -10,7 +10,7 @@ class val PushSumAlgorithm is Algorithm
   new val create() =>
     None
 
-  fun create_convergence_checker(member: Member): ConvergenceChecker ref =>
+  fun create_convergence_checker(member: PushSumMember): ConvergenceChecker ref =>
     PushSumConvergenceChecker(_epsilon, _consecutive_rounds)
 
   fun start(member: Member) =>
