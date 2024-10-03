@@ -1,92 +1,85 @@
-use "collections"
-use "random"
 use "time"
-use @printf[I32](format: Pointer[U8] tag, ...)
+use "random"
+use "collections"
+use "utils"
+use "topologies"
+use "algorithms"
+use "interfaces"
+use "structs"
 
 actor Main
   let _env: Env
+  var _start_time: U64 = 0
+  var _num_nodes: USize = 0
+  var _converged_count: USize = 0
+  let _logger: Logger tag
+  let _network_logger: NetworkLogger tag
+
   new create(env: Env) =>
-  
     _env = env
+    _logger = Logger(env, "project2_log.csv")
+    _network_logger = NetworkLogger(env, "project2_network_log.csv")
+    
     try
       let args = env.args
       if args.size() != 4 then
-        env.out.print("Usage: project2 numNodes topology algorithm")
-        error
+        _env.out.print("Usage: project2 numNodes topology algorithm")
+        return
       end
 
-      let numNodes = args(1)?.usize()?
+      _num_nodes = args(1)?.usize()?
       let topology = args(2)?
       let algorithm = args(3)?
 
-      let actors = Array[Member tag](numNodes)
-      let rng = Rand
-
-      // Create actors
-      for i in Range(0, numNodes) do
-        let neighbors = recover iso Array[Member tag](numNodes - 1) end
-        actors.push(Member(i, i.f64(), 1.0, consume neighbors))
-      end
-      setup_full_topology(actors)?
-      // Set up topology
-      // match topology
-      // | "full" => setup_full_topology(actors)?
-      // | "3D" => setup_3d_topology(actors)
-      // | "line" => setup_line_topology(actors)?
-      // | "imp3D" => setup_imp3d_topology(actors)
-      // else
-      //   env.out.print("Invalid topology. Use 'full', '3D', 'line', or 'imp3D'.")
-      //   error
-      // end
-
-      let start_time = Time.nanos()
-
-      // Start the algorithm
-      match algorithm
-      | "gossip" =>
-        let starter = actors(rng.int(numNodes.u64()).usize())?
-        starter.start_gossip("Initial rumor", start_time)
-      | "push-sum" =>
-        let starter = actors(rng.int(numNodes.u64()).usize())?
-        starter.start_push_sum(start_time)
+      let members = create_members(algorithm)
+      
+      let network = match topology
+      | "full" => FullTopology(members, _network_logger)?
+      | "3D" => ThreeDTopology(members, _network_logger)?
+      | "line" => LineTopology(members, _network_logger)?
+      | "imp3D" => Imp3DTopology(members, _network_logger)?
       else
-        env.out.print("Invalid algorithm. Use 'gossip' or 'push-sum'.")
-        error
+        _env.out.print("Invalid topology")
+        return
+      end
+
+      _start_time = Time.millis()
+
+      for member in members.values() do
+        member.start()
       end
     else
-      env.out.print("An error occurred during initialization.")
+      _env.out.print("Error parsing arguments")
     end
 
-  fun format_array(arr: Array[U64] val): String =>
-      var result_string: String = "["
-      var first: Bool = true
-      for value in arr.values() do
-          if not first then
-              result_string = result_string + ", " // Add comma between elements
-          else
-              first = false
-          end
-          result_string = result_string + value.string()
+  fun ref create_members(algorithm: String): Array[Member tag] =>
+    let members = Array[Member tag]
+    
+    match algorithm
+    | "gossip" =>
+      let gossip_algo = GossipAlgorithm("rumor")
+      for i in Range(0, _num_nodes) do
+        let initial_state = GossipState("", 0)
+        let member = GossipMember(i, initial_state, recover Array[Member tag] end, 10, _env, this, _logger, _network_logger)
+        members.push(member)
       end
-      result_string = result_string + "]" // Close the bracket
-      result_string
+    | "push-sum" =>
+      let push_sum_algo = PushSumAlgorithm
+      for i in Range(0, _num_nodes) do
+        let initial_state = State(i.f64(), 1.0)
+        let member = PushSumMember(i, initial_state, recover Array[Member tag] end, _env, this, _logger, _network_logger, 1e-10)
+        members.push(member)
+      end
+    else
+      _env.out.print("Invalid algorithm")
+    end
+    members
 
-  fun setup_full_topology(actors: Array[Member tag]) ? =>
-    for i in Range(0, actors.size()) do
-      for j in Range(0, actors.size()) do
-        if i != j then
-          actors(i)?.add_neighbor(actors(j)?)
-        end
-      end
-      // log the neighbors ids assigned to actor i for debugging
-      // let neighbors = actors(i)?.get_neighbors()
-      // _env.out.print("Total Assigned Neighbours: %d".cstring() + neighbors.size().string())
-      // var members_string = "["
-      // for k in Range(0, neighbors.size()) do
-      //   members_string = members_string + neighbors(k)?.id().string()
-      //   if k < (neighbors.size() - 1) then
-      //     members_string = members_string + ", "
-      //   end
-      // end
-      // _env.out.print("Member %d neighbors: %s".cstring() + i.string() + members_string)
+  be report_convergence() =>
+    _converged_count = _converged_count + 1
+    if _converged_count == _num_nodes then
+      let convergence_time = Time.millis() - _start_time
+      _env.out.print("Convergence time: " + convergence_time.string() + " ms")
+      _logger.close()
+      _network_logger.close()
     end
