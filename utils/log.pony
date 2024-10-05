@@ -6,9 +6,11 @@ use "files"
 actor Logger
     let file: File
     let _env: Env
+    let _logging_enabled: Bool
 
-    new create(env: Env, filename: String) =>
+    new create(env: Env, filename: String, logging_enabled: Bool) =>
         _env = env
+        _logging_enabled = logging_enabled
         let path = FilePath(FileAuth(env.root), filename)
         file = File(path)
         if not file.valid() then
@@ -19,40 +21,48 @@ actor Logger
         end
 
     be log(node_id: USize, action: String, s: F64, w: F64, ratio: F64) =>
-        let timestamp = Time.millis()
-        let log_entry = recover val
-            String(256) .> append(timestamp.string())
-                        .> append(",")
-                        .> append(node_id.string())
-                        .> append(",")
-                        .> append(action)
-                        .> append(",")
-                        .> append(s.string())
-                        .> append(",")
-                        .> append(w.string())
-                        .> append(",")
-                        .> append(ratio.string())
-                        .> append("\n")
+        if _logging_enabled then
+            let timestamp = Time.millis()
+            let log_entry = recover val
+                String(256) .> append(timestamp.string())
+                            .> append(",")
+                            .> append(node_id.string())
+                            .> append(",")
+                            .> append(action)
+                            .> append(",")
+                            .> append(s.string())
+                            .> append(",")
+                            .> append(w.string())
+                            .> append(",")
+                            .> append(ratio.string())
+                            .> append("\n")
+            end
+            match file
+            | let f: File => f.write(consume log_entry)
+            end
         end
-        file.write(consume log_entry)
 
     be log_gossip(node_id: USize, action: String, rumor: String, count: USize) =>
-        let timestamp = Time.millis()
-        let log_entry = recover val
-            String(256) .> append(timestamp.string())
-                        .> append(",")
-                        .> append(node_id.string())
-                        .> append(",")
-                        .> append(action)
-                        .> append(",")
-                        .> append(rumor)
-                        .> append(",")
-                        .> append(count.string())
-                        .> append(",")
-                        .> append("N/A")  // We use "N/A" for the 'w' column in Gossip
-                        .> append("\n")
+        if _logging_enabled then
+            let timestamp = Time.millis()
+            let log_entry = recover val
+                String(256) .> append(timestamp.string())
+                            .> append(",")
+                            .> append(node_id.string())
+                            .> append(",")
+                            .> append(action)
+                            .> append(",")
+                            .> append(rumor)
+                            .> append(",")
+                            .> append(count.string())
+                            .> append(",")
+                            .> append("N/A")
+                            .> append("\n")
+            end
+            match file
+            | let f: File => f.write(consume log_entry)
+            end
         end
-        file.write(consume log_entry)
 
     be close() =>
         file.dispose()

@@ -51,7 +51,7 @@ actor PushSumMember is Member
     let received_s = data._1
     let received_w = data._2
     _state = State(_state.s + received_s, _state.w + received_w)
-    // _logger.log(_id, "RECEIVE", _state.s, _state.w, _state.s / _state.w)
+    _logger.log(_id, "RECEIVE", _state.s, _state.w, _state.s / _state.w)
     
     let new_ratio = _state.s / _state.w
     if (_last_ratio - new_ratio).abs() <= _epsilon then
@@ -82,7 +82,7 @@ actor PushSumMember is Member
       let index = (scaled_fraction % _neighbors.size().f64()).usize()
       // _env.out.print("Member " + _id.string() + " sending message")
       // _env.out.print(index.string())
-      // _logger.log(_id, "SEND", _state.s, _state.w, _state.s / _state.w)
+      _logger.log(_id, "SEND", _state.s, _state.w, _state.s / _state.w)
       // _env.out.print("Index: " + index.string())
       try
         let message = PushSumMessage(half_s, half_w)

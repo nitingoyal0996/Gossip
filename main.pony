@@ -14,26 +14,29 @@ actor Main
   var _converged_count: USize = 0
   var _logger: Logger tag
   var _network_logger: NetworkLogger tag
+  var _logging_enabled: Bool = false
 
   new create(env: Env) =>
     _env = env
-    _logger = Logger(env, "logs/default_log.csv")
-    _network_logger = NetworkLogger(env, "logs/default_network_log.csv")
+    _logger = Logger(env, "logs/default_log.csv", false)
+    _network_logger = NetworkLogger(env, "logs/default_network_log.csv", false)
+
     try
       let args = env.args
-      if args.size() != 4 then
-        _env.out.print("Usage: project2 numNodes topology algorithm")
+      if (args.size() < 4) or (args.size() > 5) then
+        _env.out.print("Usage: project2 numNodes topology algorithm [logging]")
         error
       end
       _num_nodes = args(1)?.usize()?
       let topology = args(2)?
       let algorithm = args(3)?
+      _logging_enabled = if args.size() == 5 then args(4)? == "on" else false end
 
       let timestamp = Time.millis().string()
       let prefix = "logs/" + _num_nodes.string() + "_" + topology + "_" + algorithm + "_" + consume timestamp
 
-      _logger = Logger(env, prefix + "_log.csv")
-      _network_logger = NetworkLogger(env, prefix + "_network_log.csv")
+      _logger = Logger(env, prefix + "_log.csv", _logging_enabled)
+      _network_logger = NetworkLogger(env, prefix + "_network_log.csv", _logging_enabled)
 
       let members = create_members(algorithm)
 

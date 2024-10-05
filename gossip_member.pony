@@ -39,7 +39,7 @@ actor GossipMember is Member
     let received_rumor = message.get_gossip_data()
     if received_rumor == _state.rumor then
       _state = GossipState(_state.rumor, _state.count + 1)
-      // _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
+      _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
       if _state.count >= _threshold then
         _main.report_convergence()
       else
@@ -54,7 +54,7 @@ actor GossipMember is Member
       let scaled_fraction = real_fraction * (_neighbors.size().f64() * 1000.0)
       let index = (scaled_fraction.usize() % _neighbors.size())
       // _network_logger.log_message("Random chosen index: " + index.string())
-      // _logger.log_gossip(_id, "SEND", _state.rumor, _state.count.usize())
+      _logger.log_gossip(_id, "SEND", _state.rumor, _state.count.usize())
       // _network_logger.log_message("Sent to Node " + _id.string() + "'s "+ index.string() + " neighbor")
       try
         let message = GossipMessage(_state.rumor)
