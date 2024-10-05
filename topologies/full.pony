@@ -19,7 +19,7 @@ primitive FullTopology is Topology
       end
 
       members(i)?.add_neighbors(consume neighbors_members)
-      network_logger.log_message("Node " + i.string() + " has " + neighbors_ids.size().string() + " neighbors")
+      // network_logger.log_message("Node " + i.string() + " has " + neighbors_ids.size().string() + " neighbors")
       network_logger.log_neighbors(i, consume neighbors_ids)
     end
 

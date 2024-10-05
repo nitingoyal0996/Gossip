@@ -13,7 +13,6 @@ actor GossipMember is Member
   let _main: Main tag
   let _logger: Logger tag
   let _network_logger: NetworkLogger tag
-  let _random: RandomUtils
   let _threshold: F64 = 10
 
   new create(id: USize, initial_state: GossipState, neighbors: Array[Member tag] iso, env: Env, main: Main tag, logger: Logger tag, network_logger: NetworkLogger tag) =>
@@ -24,7 +23,6 @@ actor GossipMember is Member
     _main = main
     _logger = logger
     _network_logger = network_logger
-    _random = RandomUtils.create()
 
   fun ref get_id(): USize => _id
 
@@ -38,25 +36,26 @@ actor GossipMember is Member
     send()
 
   be receive(message: Message val) =>
-    match message
-    | let gm: GossipMessage val =>
-      if gm.get_data() == _state.rumor then
-        _state = GossipState(_state.rumor, _state.count + 1)
-        _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
-        
-        if _state.count >= _threshold then
-          _main.report_convergence()
-        else
-          send()
-        end
+    let received_rumor = message.get_gossip_data()
+    if received_rumor == _state.rumor then
+      _state = GossipState(_state.rumor, _state.count + 1)
+      // _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
+      if _state.count >= _threshold then
+        _main.report_convergence()
+      else
+        send()
       end
     end
 
   be send() =>
     if (_neighbors.size() > 0) then
-      let index = _random.get_random_number_in_range(0, _neighbors.size() - 1)
-      _logger.log_gossip(_id, "SEND", _state.rumor, _state.count.usize())
-      
+      let rand = Rand(Time.nanos().u64())
+      let real_fraction = rand.real()
+      let scaled_fraction = real_fraction * (_neighbors.size().f64() * 1000.0)
+      let index = (scaled_fraction.usize() % _neighbors.size())
+      // _network_logger.log_message("Random chosen index: " + index.string())
+      // _logger.log_gossip(_id, "SEND", _state.rumor, _state.count.usize())
+      // _network_logger.log_message("Sent to Node " + _id.string() + "'s "+ index.string() + " neighbor")
       try
         let message = GossipMessage(_state.rumor)
         _neighbors(index)?.receive(message)
@@ -69,5 +68,8 @@ class val GossipMessage is Message
   new val create(rumor: String) =>
     _rumor = rumor
 
-  fun get_data(): String =>
+  fun get_data(): (F64, F64) =>
+    (0, 0) // Gossip doesn't use numerical data, so we return (0, 0)
+
+  fun get_gossip_data(): String =>
     _rumor

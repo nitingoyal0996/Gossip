@@ -29,7 +29,7 @@ primitive ThreeDTopology is Topology
       end
 
       members(i)?.add_neighbors(consume neighbor_members)
-      network_logger.log_message("Node " + i.string() + " has " + neighbor_ids.size().string() + " neighbors")
+      // network_logger.log_message("Node " + i.string() + " has " + neighbor_ids.size().string() + " neighbors")
       network_logger.log_neighbors(i, consume neighbor_ids)
     end
 

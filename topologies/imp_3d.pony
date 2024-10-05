@@ -3,6 +3,8 @@ use "collections"
 use "../interfaces"
 use "../utils"
 use "math"
+use "random"
+use "time"
 
 primitive Imp3DTopology is Topology
   fun apply(members: Array[Member tag], network_logger: NetworkLogger)? =>
@@ -12,14 +14,14 @@ primitive Imp3DTopology is Topology
     network_logger.log_message("Creating Imperfect 3D topology with " + num_nodes.string() + " nodes and grid size " + size.string())
 
     for i in Range(0, num_nodes) do
-      network_logger.log_message("Processing node " + i.string())
+      // network_logger.log_message("Processing node " + i.string())
       let neighbor_ids = recover trn Array[USize] end
       let neighbors = recover trn Array[Member tag] end
       let x = i % size
       let y = (i / size) % size
       let z = i / (size * size)
       
-      // Add neighbors
+      // Add grid neighbors (up to 6)
       try
         if (x > 0) and ((i-1) < num_nodes) then
           neighbors.push(members(i-1)?)
@@ -29,7 +31,7 @@ primitive Imp3DTopology is Topology
           neighbors.push(members(i+1)?)
           neighbor_ids.push(i+1)
         end
-        if (y > 0) and ((i-size) < num_nodes) then
+        if (y > 0) and ((i-size) >= 0) and ((i-size) < num_nodes) then
           neighbors.push(members(i-size)?)
           neighbor_ids.push(i-size)
         end
@@ -37,7 +39,7 @@ primitive Imp3DTopology is Topology
           neighbors.push(members(i+size)?)
           neighbor_ids.push(i+size)
         end
-        if (z > 0) and ((i-(size*size)) < num_nodes) then
+        if (z > 0) and ((i-(size*size)) >= 0) and ((i-(size*size)) < num_nodes) then
           neighbors.push(members(i-(size*size))?)
           neighbor_ids.push(i-(size*size))
         end
@@ -46,27 +48,41 @@ primitive Imp3DTopology is Topology
           neighbor_ids.push(i+(size*size))
         end
       else
-        network_logger.log_message("Error adding regular neighbors for node " + i.string())
+        network_logger.log_message("Error adding grid neighbors for node " + i.string())
         error
       end
       
       // Add one random neighbor
       try
-        let random = RandomUtils.create()
         var attempts: USize = 0
-        while (neighbors.size() < 7) and (attempts < 10) do
-          let random_neighbor = random.get_random_number_in_range(0, num_nodes)
+        while (attempts < num_nodes) do
+          let rand = Rand(Time.nanos().u64())
+          let real_fraction = rand.real()
+          let scaled_fraction = real_fraction * (members.size().f64() * 1000.0)
+          let random_neighbor = (scaled_fraction.usize() % num_nodes)
+          
+          // network_logger.log_message("Attempting to add random neighbor " + random_neighbor.string() + " to node " + i.string())
           if (random_neighbor != i) and (not neighbor_ids.contains(random_neighbor)) then
-            neighbors.push(members(random_neighbor)?)
-            neighbor_ids.push(random_neighbor)
+            try
+              neighbors.push(members(random_neighbor)?)
+              neighbor_ids.push(random_neighbor)
+              // network_logger.log_message("Successfully added random neighbor " + random_neighbor.string() + " to node " + i.string())
+              break
+            else
+              network_logger.log_message("Error accessing member at index " + random_neighbor.string() + " for node " + i.string())
+              error
+            end
           end
           attempts = attempts + 1
         end
+        if attempts >= num_nodes then
+          network_logger.log_message("Could not add random neighbor for node " + i.string() + " after " + attempts.string() + " attempts")
+        end
       else
-        network_logger.log_message("Error adding random neighbor for node " + i.string())
+        network_logger.log_message("Error in random number generation for node " + i.string())
         error
       end
-      
+
       try
         members(i)?.add_neighbors(consume neighbors)
         network_logger.log_neighbors(i, consume neighbor_ids)
