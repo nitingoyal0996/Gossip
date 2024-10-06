@@ -101,14 +101,12 @@ actor Main
       if not default_log.remove() then
         _env.out.print("Error removing default log file")
       end
-    else
-      _env.out.print("Default log file does not exist")
     end
 
     if default_network_log.exists() then
       if not default_network_log.remove() then
         _env.out.print("Error removing default network log file")
       end
-    else
-      _env.out.print("Default network log file does not exist")
     end
+    _env.exitcode(0)
+    _env.out.print("Simulation complete. Exiting...")

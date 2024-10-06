@@ -42,6 +42,7 @@ actor GossipMember is Member
       _logger.log_gossip(_id, "RECEIVE", _state.rumor, _state.count.usize())
       if _state.count >= _threshold then
         _main.report_convergence()
+        _logger.log_gossip(_id, "CONVERGED", _state.rumor, _state.count.usize())
       else
         send()
       end
