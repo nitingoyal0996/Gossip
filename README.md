@@ -1,3 +1,23 @@
+<div align="center">
+
+# **Project 2: Report**
+
+COP5615: Distributed Operating Systems Principles  
+**Fall 2024**
+
+<br><br><br>
+
+**Nitin Goyal**  
+Email: [nitin.goyal@ufl.edu](mailto:nitin.goyal@ufl.edu)  
+Electrical and Computer Engineering  
+University of Florida
+
+<br>
+
+**Oct 06, 2024**
+
+</div>
+
 # Gossip and Push-Sum Algorithms Simulation
 
 This project simulates and compares the Gossip and Push-Sum algorithms across different network topologies and sizes.
