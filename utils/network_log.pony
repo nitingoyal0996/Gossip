@@ -4,6 +4,7 @@ use ".."
 use "../interfaces"
 use "collections"
 
+// logs the network topology and formation in a csv file
 actor NetworkLogger
   let file: File
   let _env: Env

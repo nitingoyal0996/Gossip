@@ -1,8 +1,7 @@
 use "time"
 use "files"
 
-// create a logging actor that manages the time based logging of messages from multiple actors into a single file
-
+// logs the message activity of network in a csv file
 actor Logger
     let file: File
     let _env: Env
